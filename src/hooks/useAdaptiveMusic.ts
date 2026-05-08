@@ -1,66 +1,54 @@
 import { useEffect, useRef, useState } from 'react'
 
-const emotionFrequency: Record<string, number> = {
-  'Concerned Love': 220,
-  'Responsible Focus': 246,
-  'Trusting Hope': 262,
-  'Uneasy Anticipation': 196,
-  Fear: 146,
-  'Suspicion and Worry': 174,
-  'Alarm and Urgency': 130,
-  'Protective Love': 220,
-  'Sadness and Relief': 164,
-  'Peace and Restored Love': 294,
-}
+const MUSIC_SRC = '/audio/background-music.mp3'
 
-export function useAdaptiveMusic(emotion: string, isNarrating: boolean) {
+export function useAdaptiveMusic(_emotion: string, isNarrating: boolean) {
   const [enabled, setEnabled] = useState(false)
-  const [volume, setVolume] = useState(0.22)
-  const audioRef = useRef<AudioContext | null>(null)
-  const oscRef = useRef<OscillatorNode | null>(null)
-  const harmonyRef = useRef<OscillatorNode | null>(null)
-  const gainRef = useRef<GainNode | null>(null)
+  const [volume, setVolume] = useState(0.35)
+  const [status, setStatus] = useState('Music off')
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   const ensureAudio = () => {
-    if (audioRef.current) return
-    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-    const audio = new AudioContextClass()
-    const gain = audio.createGain()
-    const osc = audio.createOscillator()
-    const harmony = audio.createOscillator()
-    osc.type = 'sine'
-    harmony.type = 'triangle'
-    osc.frequency.value = emotionFrequency[emotion] || 220
-    harmony.frequency.value = (emotionFrequency[emotion] || 220) * 1.5
-    gain.gain.value = 0
-    osc.connect(gain)
-    harmony.connect(gain)
-    gain.connect(audio.destination)
-    osc.start()
-    harmony.start()
+    if (audioRef.current) return audioRef.current
+    const audio = new Audio(MUSIC_SRC)
+    audio.loop = true
+    audio.preload = 'auto'
+    audio.volume = 0
+    audio.addEventListener('canplay', () => setStatus('Music ready'))
+    audio.addEventListener('error', () => setStatus('Music file not found. Check public/audio/background-music.mp3'))
     audioRef.current = audio
-    oscRef.current = osc
-    harmonyRef.current = harmony
-    gainRef.current = gain
+    return audio
   }
 
-  const toggleMusic = () => {
-    ensureAudio()
-    setEnabled((value) => !value)
+  const toggleMusic = async () => {
+    const audio = ensureAudio()
+    if (enabled) {
+      audio.pause()
+      setEnabled(false)
+      setStatus('Music paused')
+      return
+    }
+    try {
+      setStatus('Starting music...')
+      audio.volume = volume
+      await audio.play()
+      setEnabled(true)
+      setStatus('Music playing')
+    } catch (error) {
+      console.warn('Background music could not start:', error)
+      setEnabled(false)
+      setStatus('Music failed to play. Tap again or check MP3 path.')
+    }
   }
 
   useEffect(() => {
-    if (!gainRef.current || !audioRef.current) return
-    const target = enabled ? volume * (isNarrating ? 0.38 : 1) : 0
-    gainRef.current.gain.setTargetAtTime(target, audioRef.current.currentTime, 0.18)
+    const audio = audioRef.current
+    if (!audio) return
+    audio.volume = enabled ? volume * (isNarrating ? 0.35 : 1) : 0
+    if (enabled) setStatus(isNarrating ? 'Music ducked for narration' : 'Music playing')
   }, [enabled, volume, isNarrating])
 
-  useEffect(() => {
-    if (!oscRef.current || !harmonyRef.current || !audioRef.current) return
-    const base = emotionFrequency[emotion] || 220
-    oscRef.current.frequency.setTargetAtTime(base, audioRef.current.currentTime, 0.35)
-    harmonyRef.current.frequency.setTargetAtTime(base * 1.5, audioRef.current.currentTime, 0.35)
-  }, [emotion])
+  useEffect(() => () => { audioRef.current?.pause() }, [])
 
-  return { enabled, volume, setVolume, toggleMusic }
+  return { enabled, volume, setVolume, toggleMusic, source: MUSIC_SRC, status }
 }
