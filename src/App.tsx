@@ -14,17 +14,24 @@ export default function App() {
 
   const scene = useMemo(() => storyScenes[sceneIndex], [sceneIndex])
 
-  const clearTimer = () => {
-    if (timerRef.current) window.clearInterval(timerRef.current)
-    timerRef.current = undefined
+  const playClick = () => {
+    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    const audio = new AudioContextClass()
+    const oscillator = audio.createOscillator()
+    const gain = audio.createGain()
+    oscillator.frequency.value = 620
+    oscillator.type = 'sine'
+    gain.gain.setValueAtTime(0.035, audio.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + 0.08)
+    oscillator.connect(gain)
+    gain.connect(audio.destination)
+    oscillator.start()
+    oscillator.stop(audio.currentTime + 0.08)
   }
 
-  useEffect(() => {
-    return () => {
-      window.speechSynthesis.cancel()
-      clearTimer()
-    }
-  }, [])
+  const clearTimer = () => { if (timerRef.current) window.clearInterval(timerRef.current); timerRef.current = undefined }
+
+  useEffect(() => () => { window.speechSynthesis.cancel(); clearTimer() }, [])
 
   const speakScene = (index: number) => {
     clearTimer()
@@ -33,73 +40,22 @@ export default function App() {
     const utterance = new SpeechSynthesisUtterance(currentScene.text)
     utterance.rate = 0.9
     utterance.pitch = 1
-
-    utterance.onstart = () => {
-      setIsPlaying(true)
-      setIsPaused(false)
-      setSceneIndex(index)
-      setActiveWordIndex(0)
-      timerRef.current = window.setInterval(() => {
-        setActiveWordIndex((current) => Math.min(current + 1, words.length - 1))
-      }, 390)
-    }
-
-    utterance.onend = () => {
-      clearTimer()
-      setActiveWordIndex(words.length - 1)
-      if (shouldContinueRef.current && index < storyScenes.length - 1) {
-        window.setTimeout(() => speakScene(index + 1), 650)
-      } else {
-        shouldContinueRef.current = false
-        setIsPlaying(false)
-        setIsPaused(false)
-      }
-    }
-
+    utterance.onstart = () => { setIsPlaying(true); setIsPaused(false); setSceneIndex(index); setActiveWordIndex(0); timerRef.current = window.setInterval(() => setActiveWordIndex((current) => Math.min(current + 1, words.length - 1)), 390) }
+    utterance.onend = () => { clearTimer(); setActiveWordIndex(words.length - 1); if (shouldContinueRef.current && index < storyScenes.length - 1) window.setTimeout(() => speakScene(index + 1), 650); else { shouldContinueRef.current = false; setIsPlaying(false); setIsPaused(false) } }
     window.speechSynthesis.speak(utterance)
   }
 
   const togglePlayPause = () => {
-    if (isPlaying && !isPaused) {
-      window.speechSynthesis.pause()
-      clearTimer()
-      setIsPaused(true)
-      return
-    }
-
-    if (isPlaying && isPaused) {
-      window.speechSynthesis.resume()
-      setIsPaused(false)
-      const words = storyScenes[sceneIndex].text.split(' ')
-      timerRef.current = window.setInterval(() => {
-        setActiveWordIndex((current) => Math.min(current + 1, words.length - 1))
-      }, 390)
-      return
-    }
-
+    playClick()
+    if (isPlaying && !isPaused) { window.speechSynthesis.pause(); clearTimer(); setIsPaused(true); return }
+    if (isPlaying && isPaused) { window.speechSynthesis.resume(); setIsPaused(false); const words = storyScenes[sceneIndex].text.split(' '); timerRef.current = window.setInterval(() => setActiveWordIndex((current) => Math.min(current + 1, words.length - 1)), 390); return }
     shouldContinueRef.current = true
     window.speechSynthesis.cancel()
     speakScene(sceneIndex)
   }
 
-  const stopNarration = () => {
-    shouldContinueRef.current = false
-    window.speechSynthesis.cancel()
-    clearTimer()
-    setIsPlaying(false)
-    setIsPaused(false)
-    setActiveWordIndex(-1)
-  }
+  const stopNarration = () => { playClick(); shouldContinueRef.current = false; window.speechSynthesis.cancel(); clearTimer(); setIsPlaying(false); setIsPaused(false); setActiveWordIndex(-1) }
+  const goToScene = (index: number) => { playClick(); stopNarration(); setSceneIndex(index) }
 
-  const goToScene = (index: number) => {
-    stopNarration()
-    setSceneIndex(index)
-  }
-
-  return (
-    <div className="app-shell">
-      <header className="topbar"><div><p className="eyebrow">Interactive children’s story</p><h1>When Love Runs Home</h1><p className="subtitle">A gentle story about obedience, fear, honesty, forgiveness, and the love of a mother.</p></div><div className="scene-counter">Scene {sceneIndex + 1} / {storyScenes.length}</div></header>
-      <main className="layout-grid"><section className="story-panel"><div className="scene-art fade-in" style={{ background: scene.gradient }}><div className="art-icon">{scene.icon}</div><div className="art-caption">{scene.illustration}</div></div><div className="scene-content"><div className="scene-tag">{scene.title}</div><KaraokeText text={scene.text} activeWordIndex={activeWordIndex} /><div className="controls"><button title={isPlaying && !isPaused ? 'Pause narration' : 'Play narration'} onClick={togglePlayPause}>{isPlaying && !isPaused ? '⏸' : '▶'}</button><button title="Stop narration" className="secondary" onClick={stopNarration}>⏹</button><button title="Previous scene" className="secondary" onClick={() => goToScene(sceneIndex === 0 ? storyScenes.length - 1 : sceneIndex - 1)}>⏮</button><button title="Next scene" className="secondary" onClick={() => goToScene(sceneIndex + 1 >= storyScenes.length ? 0 : sceneIndex + 1)}>⏭</button></div><div className="timeline">{storyScenes.map((item, index) => <button key={item.title} title={item.title} className={index === sceneIndex ? 'dot active-dot' : 'dot'} onClick={() => goToScene(index)}>{index + 1}</button>)}</div></div></section><BrainPanel emotion={scene.emotion} color={scene.color} brainAreas={scene.brainAreas} sideEffects={scene.sideEffects} /></main>
-    </div>
-  )
+  return <div className="app-shell"><header className="topbar"><div><p className="eyebrow">Interactive children’s story</p><h1>When Love Runs Home</h1><p className="subtitle">A gentle story about obedience, fear, honesty, forgiveness, and the love of a mother.</p></div><div className="scene-counter">Scene {sceneIndex + 1} / {storyScenes.length}</div></header><main className="layout-grid"><section className="story-panel"><div className="scene-art fade-in" style={{ background: scene.gradient }}><div className="art-icon">{scene.icon}</div><div className="art-caption">{scene.illustration}</div></div><div className="scene-content"><div className="scene-tag">{scene.title}</div><KaraokeText text={scene.text} activeWordIndex={activeWordIndex} /><div className="controls"><button className="control-button" title={isPlaying && !isPaused ? 'Pause narration' : 'Play narration'} onClick={togglePlayPause}>{isPlaying && !isPaused ? '⏸' : '▶'}</button><button className="control-button secondary" title="Stop narration" onClick={stopNarration}>⏹</button><button className="control-button secondary" title="Previous scene" onClick={() => goToScene(sceneIndex === 0 ? storyScenes.length - 1 : sceneIndex - 1)}>⏮</button><button className="control-button secondary" title="Next scene" onClick={() => goToScene(sceneIndex + 1 >= storyScenes.length ? 0 : sceneIndex + 1)}>⏭</button></div><div className="timeline">{storyScenes.map((item, index) => <button key={item.title} title={item.title} className={index === sceneIndex ? 'dot active-dot' : 'dot'} onClick={() => goToScene(index)}>{index + 1}</button>)}</div></div></section><BrainPanel emotion={scene.emotion} color={scene.color} brainAreas={scene.brainAreas} sideEffects={scene.sideEffects} /></main></div>
 }
