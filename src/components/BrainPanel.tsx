@@ -1,3 +1,15 @@
-type BrainPanelProps = { emotion: string;color: string;brainAreas: string[];sideEffects: string[] }
-const regions: Record<string,{x:number;y:number;rx:number;ry:number}>={ 'Prefrontal Cortex':{x:112,y:126,rx:54,ry:66}, Amygdala:{x:244,y:214,rx:28,ry:22}, Hippocampus:{x:230,y:188,rx:58,ry:24}, Hypothalamus:{x:202,y:208,rx:26,ry:18}, 'Limbic System':{x:226,y:176,rx:86,ry:48}, 'Anterior Cingulate Cortex':{x:172,y:138,rx:34,ry:72} }
-export function BrainPanel({emotion,color,brainAreas,sideEffects}:BrainPanelProps){return(<aside className="brain-panel"><h2>Mother’s Emotional State</h2><div className="emotion-badge" style={{background:color}}>{emotion}</div><div className="brain-stage"><div className="brain-orbit"><svg className="brain-svg brain-3d" viewBox="0 0 420 320" role="img" aria-label="3D styled brain diagram"><ellipse className="brain-shadow" cx="212" cy="286" rx="120" ry="18"/><path className="brain-depth" d="M124 92c-25 12-42 38-42 67 0 18 7 35 19 49-3 8-3 17 1 27 8 22 31 36 55 32h121c38 0 70-31 70-70 0-14-4-28-12-40 9-12 13-27 9-42-7-30-36-50-67-45-14-22-39-36-67-33-22 2-41 13-53 31-12-5-24-5-34 0-10 5-18 13-23 24z"/><path className="brain-base" d="M103 78c-28 13-47 41-47 74 0 21 8 40 21 55-3 9-3 20 1 30 9 25 35 41 62 36h135c43 0 78-35 78-78 0-16-5-31-13-44 10-13 14-30 10-47-8-34-41-56-75-50-15-25-43-40-75-37-24 2-46 15-59 34-13-5-26-5-38 0-11 5-20 14-26 25z"/><path className="brain-line" d="M89 151c54-31 97-18 129 23 33-43 70-53 113-31"/><path className="brain-line" d="M105 220c48-29 91-28 128 4 35-31 66-33 95-8"/><path className="neural-line" d="M126 126 C178 98,224 120,274 91"/><path className="neural-line neural-delay" d="M127 213 C185 169,244 174,307 205"/>{brainAreas.map((area)=>{const r=regions[area];if(!r)return null;return <ellipse key={area} cx={r.x} cy={r.y} rx={r.rx} ry={r.ry} fill={color} className="highlight highlight-3d"/>})}</svg></div></div><div className="info-block"><h3>Brain Areas</h3><ul>{brainAreas.map((area)=><li key={area}>{area}</li>)}</ul></div>{sideEffects.length>0&&<div className="warning-block"><h3>Possible Negative Side Effects</h3><ul>{sideEffects.map((effect)=><li key={effect}>{effect}</li>)}</ul></div>}</aside>)}
+import { Brain3D } from './Brain3D'
+
+type BrainPanelProps = { emotion: string; color: string; brainAreas: string[]; sideEffects: string[] }
+
+export function BrainPanel({ emotion, color, brainAreas, sideEffects }: BrainPanelProps) {
+  return (
+    <aside className="brain-panel">
+      <h2>Mother’s Emotional State</h2>
+      <div className="emotion-badge" style={{ background: color }}>{emotion}</div>
+      <Brain3D color={color} brainAreas={brainAreas} />
+      <div className="info-block"><h3>Brain Areas</h3><ul>{brainAreas.map((area) => <li key={area}>{area}</li>)}</ul></div>
+      {sideEffects.length > 0 && <div className="warning-block"><h3>Possible Negative Side Effects</h3><ul>{sideEffects.map((effect) => <li key={effect}>{effect}</li>)}</ul></div>}
+    </aside>
+  )
+}
