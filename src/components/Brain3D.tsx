@@ -1,4 +1,4 @@
-import { OrbitControls, Sparkles } from '@react-three/drei'
+import { Html, OrbitControls, Sparkles } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import { Suspense, useMemo } from 'react'
 import * as THREE from 'three'
@@ -6,33 +6,53 @@ import { BrainModel } from './BrainModel'
 
 type Brain3DProps = { color: string; brainAreas: string[] }
 
-type NodeConfig = { position: [number, number, number]; scale: [number, number, number] }
+type NodeConfig = { position: [number, number, number]; scale: [number, number, number]; label: [number, number, number] }
 
 const regionNodes: Record<string, NodeConfig> = {
-  'Prefrontal Cortex': { position: [-0.62, 0.46, 0.86], scale: [0.34, 0.22, 0.08] },
-  Amygdala: { position: [0.48, -0.28, 0.72], scale: [0.14, 0.1, 0.06] },
-  Hippocampus: { position: [0.22, -0.1, 0.76], scale: [0.32, 0.09, 0.06] },
-  Hypothalamus: { position: [0.02, -0.3, 0.78], scale: [0.13, 0.09, 0.06] },
-  'Limbic System': { position: [0.12, 0.02, 0.78], scale: [0.42, 0.18, 0.07] },
-  'Anterior Cingulate Cortex': { position: [-0.2, 0.28, 0.82], scale: [0.2, 0.3, 0.06] },
+  'Prefrontal Cortex': { position: [-0.62, 0.46, 0.86], scale: [0.28, 0.18, 0.055], label: [-1.35, 1.02, 0.9] },
+  Amygdala: { position: [0.48, -0.28, 0.72], scale: [0.105, 0.075, 0.045], label: [1.1, -0.55, 0.95] },
+  Hippocampus: { position: [0.22, -0.1, 0.76], scale: [0.25, 0.07, 0.045], label: [0.95, 0.1, 1.0] },
+  Hypothalamus: { position: [0.02, -0.3, 0.78], scale: [0.1, 0.07, 0.045], label: [-0.55, -0.75, 0.95] },
+  'Limbic System': { position: [0.12, 0.02, 0.78], scale: [0.33, 0.13, 0.05], label: [0.9, 0.55, 1.05] },
+  'Anterior Cingulate Cortex': { position: [-0.2, 0.28, 0.82], scale: [0.15, 0.24, 0.045], label: [-1.05, 0.55, 1.0] },
+}
+
+function LeaderLine({ from, to, color }: { from: [number, number, number]; to: [number, number, number]; color: string }) {
+  const points = useMemo(() => [new THREE.Vector3(...from), new THREE.Vector3(...to)], [from, to])
+  const geometry = useMemo(() => new THREE.BufferGeometry().setFromPoints(points), [points])
+  return (
+    <line geometry={geometry}>
+      <lineBasicMaterial color={color} transparent opacity={0.55} />
+    </line>
+  )
 }
 
 function EmotionRegions({ color, brainAreas }: Brain3DProps) {
   const activeColor = new THREE.Color(color)
-  const activeNodes = useMemo(() => brainAreas.map((area) => regionNodes[area]).filter(Boolean), [brainAreas])
+  const activeNodes = useMemo(() => brainAreas.map((area) => ({ area, node: regionNodes[area] })).filter((item) => Boolean(item.node)), [brainAreas])
 
   return (
     <>
-      {activeNodes.map((node, index) => (
-        <mesh key={`${node.position.join('-')}-${index}`} position={node.position} scale={node.scale} rotation={[0.15, -0.2, 0.08]}>
-          <sphereGeometry args={[1, 32, 24]} />
-          <meshStandardMaterial color={activeColor} emissive={activeColor} emissiveIntensity={0.85} transparent opacity={0.38} depthWrite={false} />
-        </mesh>
+      {activeNodes.map(({ area, node }) => (
+        <group key={area}>
+          <mesh position={node.position} scale={node.scale} rotation={[0.15, -0.2, 0.08]}>
+            <sphereGeometry args={[1, 32, 24]} />
+            <meshStandardMaterial color={activeColor} emissive={activeColor} emissiveIntensity={0.9} transparent opacity={0.34} depthWrite={false} />
+          </mesh>
+          <mesh position={node.position} scale={[node.scale[0] * 1.16, node.scale[1] * 1.16, node.scale[2] * 1.16]} rotation={[0.15, -0.2, 0.08]}>
+            <sphereGeometry args={[1, 32, 24]} />
+            <meshBasicMaterial color={activeColor} transparent opacity={0.12} depthWrite={false} />
+          </mesh>
+          <LeaderLine from={node.position} to={node.label} color={color} />
+          <Html position={node.label} center distanceFactor={6} className="brain-label-wrap">
+            <div className="brain-region-label" style={{ borderColor: color }}>
+              <span style={{ background: color }} />{area}
+            </div>
+          </Html>
+          <pointLight position={node.position} color={activeColor} intensity={1.05} distance={2.2} />
+        </group>
       ))}
-      {activeNodes.map((node, index) => (
-        <pointLight key={`light-${index}`} position={node.position} color={activeColor} intensity={1.15} distance={2.4} />
-      ))}
-      <Sparkles count={38} speed={0.5} size={2.2} scale={[3.5, 2.5, 2.5]} color={color} />
+      <Sparkles count={34} speed={0.45} size={2} scale={[3.5, 2.5, 2.5]} color={color} />
     </>
   )
 }
@@ -49,8 +69,9 @@ export function Brain3D({ color, brainAreas }: Brain3DProps) {
           <BrainModel />
         </Suspense>
         <EmotionRegions color={color} brainAreas={brainAreas} />
-        <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={0.45} minPolarAngle={Math.PI / 2.8} maxPolarAngle={Math.PI / 1.8} />
+        <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={0.35} minPolarAngle={Math.PI / 2.8} maxPolarAngle={Math.PI / 1.8} />
       </Canvas>
+      <div className="brain-note">Educational visualization — highlighted areas are approximate, not a medical diagnosis.</div>
     </div>
   )
 }
