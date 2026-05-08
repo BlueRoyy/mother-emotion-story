@@ -11,19 +11,27 @@ export function BrainModel() {
     const copy = scene.clone()
 
     copy.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh
-        mesh.castShadow = true
-        mesh.receiveShadow = true
+      if (!(child instanceof THREE.Mesh)) return
 
-        if (mesh.material instanceof THREE.MeshStandardMaterial) {
-          mesh.material = mesh.material.clone()
-          mesh.material.emissive = new THREE.Color('#000000')
-          mesh.material.emissiveIntensity = 0
-          mesh.material.roughness = 0.58
-          mesh.material.metalness = 0.05
+      child.castShadow = true
+      child.receiveShadow = true
+
+      const materials = Array.isArray(child.material)
+        ? child.material
+        : [child.material]
+
+      child.material = materials.map((material) => {
+        const clonedMaterial = material.clone()
+
+        if (clonedMaterial instanceof THREE.MeshStandardMaterial) {
+          clonedMaterial.emissive = new THREE.Color('#000000')
+          clonedMaterial.emissiveIntensity = 0
+          clonedMaterial.roughness = 0.58
+          clonedMaterial.metalness = 0.05
         }
-      }
+
+        return clonedMaterial
+      })
     })
 
     return copy
