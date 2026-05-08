@@ -12,10 +12,8 @@ export function LearningPanel({ emotion, brainAreas, sceneTitle }: LearningPanel
   const questions = prompts[emotion] || ['What choice helped or hurt the family?', 'What emotion is Mom feeling, and why?']
   return (
     <section className="learning-panel">
-      <div className="learning-header">
-        <span>Emotional Learning</span>
-        <strong>{sceneTitle}</strong>
-      </div>
+      <div className="learning-kicker">Emotional Learning</div>
+      <div className="learning-title">{sceneTitle}</div>
       <p className="learning-summary">Mom is feeling <strong>{emotion}</strong>. Highlighted brain area: <strong>{brainAreas.join(', ')}</strong>.</p>
       <div className="reflection-grid">
         {questions.map((question) => <div className="reflection-card" key={question}>{question}</div>)}
