@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react'
+
 type SceneAtmosphereProps = { emotion: string }
 
 const moodClass: Record<string, string> = {
@@ -15,10 +17,11 @@ const moodClass: Record<string, string> = {
 
 export function SceneAtmosphere({ emotion }: SceneAtmosphereProps) {
   const mood = moodClass[emotion] || 'mood-calm'
+
   return (
     <div className={`scene-atmosphere ${mood}`} aria-hidden="true">
       {Array.from({ length: 18 }).map((_, index) => (
-        <span key={index} style={{ '--i': index } as React.CSSProperties} />
+        <span key={index} style={{ '--i': index } as CSSProperties} />
       ))}
     </div>
   )
