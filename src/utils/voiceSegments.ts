@@ -6,7 +6,7 @@ export type VoiceSegment = {
 }
 
 export const voiceProfiles: Record<VoiceRole, { rate: number; pitch: number; preferredVoiceTerms: string[] }> = {
-  narrator: { rate: 0.9, pitch: 0.95, preferredVoiceTerms: ['Daniel', 'Microsoft David', 'Google UK English Male', 'Alex'] },
+  narrator: { rate: 0.86, pitch: 1.08, preferredVoiceTerms: ['Microsoft Guy', 'Google UK English Male', 'Aaron', 'Daniel', 'Alex', 'Microsoft David'] },
   mother: { rate: 0.86, pitch: 1.02, preferredVoiceTerms: ['Samantha', 'Microsoft Zira', 'Google UK English Female', 'Karen'] },
   maya: { rate: 0.96, pitch: 1.28, preferredVoiceTerms: ['Samantha', 'Google US English', 'Microsoft Zira'] },
   jonah: { rate: 0.98, pitch: 1.18, preferredVoiceTerms: ['Alex', 'Google US English', 'Microsoft David'] },
@@ -22,7 +22,7 @@ export function pickVoice(role: VoiceRole): SpeechSynthesisVoice | undefined {
     if (voice) return voice
   }
 
-  return voices.find((voice) => voice.lang.startsWith('en'))
+  return voices.find((voice) => voice.lang.startsWith('en') && !voice.name.toLowerCase().includes('compact')) || voices.find((voice) => voice.lang.startsWith('en'))
 }
 
 export function getVoiceSegments(title: string, fallbackText: string): VoiceSegment[] {
