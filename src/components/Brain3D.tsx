@@ -29,11 +29,9 @@ function EmotionRegions({ color, brainAreas }: Brain3DProps) {
           <meshStandardMaterial color={activeColor} emissive={activeColor} emissiveIntensity={1.6} transparent opacity={0.72} />
         </mesh>
       ))}
-
       {activeNodes.map((node, index) => (
         <pointLight key={`light-${index}`} position={node.position} color={activeColor} intensity={2.6} distance={3.8} />
       ))}
-
       <Sparkles count={58} speed={0.7} size={2.8} scale={[4, 3, 3]} color={color} />
     </>
   )
@@ -47,13 +45,10 @@ export function Brain3D({ color, brainAreas }: Brain3DProps) {
         <ambientLight intensity={0.7} />
         <directionalLight position={[3, 4, 5]} intensity={1.8} castShadow />
         <spotLight position={[-3, 3, 3]} intensity={1.1} angle={0.45} penumbra={0.5} color={color} />
-
         <Suspense fallback={null}>
-          <BrainModel color={color} />
+          <BrainModel />
         </Suspense>
-
         <EmotionRegions color={color} brainAreas={brainAreas} />
-
         <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={0.45} minPolarAngle={Math.PI / 2.8} maxPolarAngle={Math.PI / 1.8} />
       </Canvas>
     </div>
