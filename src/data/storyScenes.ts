@@ -1,39 +1,12 @@
 export const storyScenes = [
-  {
-    title: 'Grounded, But Loved',
-    emotion: 'Concerned Love',
-    color: '#4ea8ff',
-    image:
-      'https://images.unsplash.com/photo-1516627145497-ae6968895b74?q=80&w=1200&auto=format&fit=crop',
-    brainAreas: ['Prefrontal Cortex'],
-    sideEffects: [],
-    text:
-      'Maya and Jonah sat quietly at the kitchen table. They had been grounded because they had disobeyed their mother the day before. Mom stood beside them, not angry, but serious.',
-  },
-  {
-    title: 'The Instructions',
-    emotion: 'Responsible Focus',
-    color: '#32c766',
-    image:
-      'https://images.unsplash.com/photo-1519340241574-2cec6aef0c01?q=80&w=1200&auto=format&fit=crop',
-    brainAreas: ['Prefrontal Cortex'],
-    sideEffects: [],
-    text:
-      'Before leaving for work, Mom gave clear instructions. Please stay inside, finish your reading, and do not go into the backyard until I come home.',
-  },
-  {
-    title: 'The Accident',
-    emotion: 'Fear',
-    color: '#ff4d4d',
-    image:
-      'https://images.unsplash.com/photo-1516589091380-5d8e87df6999?q=80&w=1200&auto=format&fit=crop',
-    brainAreas: ['Amygdala'],
-    sideEffects: [
-      'Racing heart',
-      'Fast breathing',
-      'Difficulty concentrating',
-    ],
-    text:
-      'Jonah slipped on the wet grass while chasing the ball. He cried out loudly and held his arm while Maya stood frozen with fear.',
-  },
+  { title: 'Grounded, But Loved', emotion: 'Concerned Love', color: '#7db7e8', icon: '🏠', gradient: 'linear-gradient(135deg,#7db7e8,#1f3f68)', illustration: 'A mother stands gently beside her grounded children at the kitchen table.', brainAreas: ['Prefrontal Cortex'], sideEffects: [], text: 'Maya and Jonah sat quietly at the kitchen table. They had been grounded because they had disobeyed their mother the day before. Mom stood beside them, not angry, but serious. I love you both, she said gently, but love also means helping you learn to make better choices.' },
+  { title: 'The Instructions', emotion: 'Responsible Focus', color: '#63d471', icon: '📚', gradient: 'linear-gradient(135deg,#63d471,#1b5e45)', illustration: 'Before work, Mom gives clear instructions beside books and packed lunch.', brainAreas: ['Prefrontal Cortex'], sideEffects: [], text: 'Before leaving for work, Mom gave clear instructions. Please stay inside, finish your reading, eat the lunch I packed, and do not go into the backyard until I come home. Maya and Jonah nodded and promised to obey.' },
+  { title: 'Temptation', emotion: 'Trusting Hope', color: '#ffe066', icon: '⚽', gradient: 'linear-gradient(135deg,#ffe066,#bd8b13)', illustration: 'The children look through the window at a ball in the backyard.', brainAreas: ['Hippocampus'], sideEffects: [], text: 'After Mom left, the house felt quiet. Maya opened her reading book, but Jonah looked through the window. The ball is still outside, he whispered. Maya frowned because Mom had said not to go outside.' },
+  { title: 'Disobedience', emotion: 'Uneasy Anticipation', color: '#ff9f1c', icon: '🌳', gradient: 'linear-gradient(135deg,#ff9f1c,#7a3f00)', illustration: 'The children play near a wet mango tree after choosing to disobey.', brainAreas: ['Amygdala'], sideEffects: ['Increased alertness', 'Mild worry', 'Tense muscles'], text: 'The children opened the back door and stepped outside. At first everything felt fun. They kicked the ball, laughed, and forgot they were grounded. But the grass near the mango tree was still wet from last night’s rain.' },
+  { title: 'The Accident', emotion: 'Fear', color: '#ff4d4d', icon: '🩹', gradient: 'linear-gradient(135deg,#ff4d4d,#5b0b13)', illustration: 'Jonah slips on the wet grass while Maya stands frightened nearby.', brainAreas: ['Amygdala'], sideEffects: ['Racing heart', 'Fast breathing', 'Panic', 'Difficulty thinking clearly'], text: 'Jonah ran after the ball. His foot slipped on the wet grass. He fell hard and cried out. Maya froze. Jonah held his arm and tears rolled down his cheeks. Do not tell Mom, he said. Maya’s heart beat fast.' },
+  { title: 'The Lie', emotion: 'Suspicion and Worry', color: '#a855f7', icon: '📞', gradient: 'linear-gradient(135deg,#a855f7,#3b1268)', illustration: 'Maya nervously calls Mom while Jonah cries softly in the background.', brainAreas: ['Anterior Cingulate Cortex', 'Amygdala'], sideEffects: ['Stress', 'Confusion', 'Tension', 'Emotional overload'], text: 'Maya called Mom at work. Everything is okay, Maya said, trying to sound normal. But Mom heard Jonah crying in the background. Maya, Mom said slowly, what happened? Maya swallowed and said Jonah only bumped his toy.' },
+  { title: 'Mother Finds Out', emotion: 'Alarm and Urgency', color: '#ff6b35', icon: '🚗', gradient: 'linear-gradient(135deg,#ff6b35,#731c05)', illustration: 'Mom rushes out of work after a neighbour confirms the children were outside.', brainAreas: ['Amygdala', 'Hypothalamus'], sideEffects: ['Adrenaline rush', 'Trembling', 'Tight stomach', 'Urgent action'], text: 'Just then, Mrs Clarke from next door called Mom too. I saw the children outside, she said. Jonah fell near the mango tree. Mom’s eyes filled with fear. She grabbed her bag and hurried home because all she could think was, my babies need me.' },
+  { title: 'Running to Her Children', emotion: 'Protective Love', color: '#ff8fab', icon: '🤗', gradient: 'linear-gradient(135deg,#ff8fab,#802341)', illustration: 'Mom kneels in the backyard and wraps both children in her arms.', brainAreas: ['Hypothalamus', 'Limbic System'], sideEffects: [], text: 'Mom reached the house and ran to the backyard. When she saw Jonah crying and Maya trembling, she dropped to her knees. I am here, she whispered. She wrapped both children in her arms and held them close.' },
+  { title: 'Forgiveness', emotion: 'Sadness and Relief', color: '#7c3aed', icon: '💧', gradient: 'linear-gradient(135deg,#7c3aed,#24105c)', illustration: 'The children confess and ask for forgiveness while Mom cries softly.', brainAreas: ['Limbic System', 'Prefrontal Cortex'], sideEffects: ['Tears', 'Emotional exhaustion', 'Heaviness in the chest'], text: 'Mom, we disobeyed, Maya cried. And we lied, Jonah whispered. Mom’s tears fell as she held them close. I was afraid because I love you so much, she said. Thank you for telling the truth now.' },
+  { title: 'Reconciliation', emotion: 'Peace and Restored Love', color: '#ffd166', icon: '🌅', gradient: 'linear-gradient(135deg,#ffd166,#8a5b00)', illustration: 'The family sits together in warm evening light after forgiveness and repair.', brainAreas: ['Prefrontal Cortex', 'Hippocampus', 'Limbic System'], sideEffects: [], text: 'Later that evening, Jonah’s arm was checked and bandaged. The family sat together on the couch. Forgiveness does not mean there are no consequences, Mom said, but it does mean love is still here. Maya and Jonah hugged her tightly, and the family was whole again.' },
 ]
