@@ -9,12 +9,12 @@ type Brain3DProps = { color: string; brainAreas: string[]; intensity?: number }
 type NodeConfig = { position: [number, number, number]; scale: [number, number, number]; label: [number, number, number] }
 
 const regionNodes: Record<string, NodeConfig> = {
-  'Prefrontal Cortex': { position: [-0.62, 0.46, 0.86], scale: [0.28, 0.18, 0.055], label: [-1.35, 1.02, 0.9] },
-  Amygdala: { position: [0.48, -0.28, 0.72], scale: [0.105, 0.075, 0.045], label: [1.1, -0.55, 0.95] },
-  Hippocampus: { position: [0.22, -0.1, 0.76], scale: [0.25, 0.07, 0.045], label: [0.95, 0.1, 1.0] },
-  Hypothalamus: { position: [0.02, -0.3, 0.78], scale: [0.1, 0.07, 0.045], label: [-0.55, -0.75, 0.95] },
-  'Limbic System': { position: [0.12, 0.02, 0.78], scale: [0.33, 0.13, 0.05], label: [0.9, 0.55, 1.05] },
-  'Anterior Cingulate Cortex': { position: [-0.2, 0.28, 0.82], scale: [0.15, 0.24, 0.045], label: [-1.05, 0.55, 1.0] },
+  'Prefrontal Cortex': { position: [-0.62, 0.46, 0.86], scale: [0.28, 0.18, 0.055], label: [-0.92, 0.72, 1.02] },
+  Amygdala: { position: [0.48, -0.28, 0.72], scale: [0.105, 0.075, 0.045], label: [0.88, -0.5, 1.02] },
+  Hippocampus: { position: [0.22, -0.1, 0.76], scale: [0.25, 0.07, 0.045], label: [0.72, 0.08, 1.04] },
+  Hypothalamus: { position: [0.02, -0.3, 0.78], scale: [0.1, 0.07, 0.045], label: [-0.42, -0.66, 1.02] },
+  'Limbic System': { position: [0.12, 0.02, 0.78], scale: [0.33, 0.13, 0.05], label: [0.72, 0.42, 1.05] },
+  'Anterior Cingulate Cortex': { position: [-0.2, 0.28, 0.82], scale: [0.15, 0.24, 0.045], label: [-0.82, 0.45, 1.04] },
 }
 
 function LeaderLine({ from, to, color, intensity }: { from: [number, number, number]; to: [number, number, number]; color: string; intensity: number }) {
@@ -54,7 +54,7 @@ function EmotionRegions({ color, brainAreas, intensity = 0.5 }: Brain3DProps) {
             <meshBasicMaterial color={activeColor} transparent opacity={outerOpacity} depthWrite={false} />
           </mesh>
           <LeaderLine from={node.position} to={node.label} color={color} intensity={intensity} />
-          <Html position={node.label} center distanceFactor={6} className="brain-label-wrap">
+          <Html position={node.label} center distanceFactor={8.5} className="brain-label-wrap">
             <div className="brain-region-label" style={{ borderColor: color }}>
               <span style={{ background: color }} />{area}
             </div>
@@ -70,7 +70,7 @@ function EmotionRegions({ color, brainAreas, intensity = 0.5 }: Brain3DProps) {
 export function Brain3D({ color, brainAreas, intensity = 0.5 }: Brain3DProps) {
   return (
     <div className="brain-3d-canvas" role="img" aria-label="Interactive 3D brain showing highlighted emotional regions">
-      <Canvas camera={{ position: [0, 0.2, 4.1], fov: 42 }} dpr={[1, 1.7]} performance={{ min: 0.5 }}>
+      <Canvas camera={{ position: [0, 0.12, 4.35], fov: 45 }} dpr={[1, 1.7]} performance={{ min: 0.5 }}>
         <fog attach="fog" args={['#07111f', 5, 9]} />
         <ambientLight intensity={0.62 + intensity * 0.18} />
         <directionalLight position={[3, 4, 5]} intensity={1.45 + intensity * 0.6} />
