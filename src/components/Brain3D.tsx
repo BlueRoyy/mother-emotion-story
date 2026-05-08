@@ -18,13 +18,20 @@ const regionNodes: Record<string, NodeConfig> = {
 }
 
 function LeaderLine({ from, to, color, intensity }: { from: [number, number, number]; to: [number, number, number]; color: string; intensity: number }) {
-  const points = useMemo(() => [new THREE.Vector3(...from), new THREE.Vector3(...to)], [from, to])
-  const geometry = useMemo(() => new THREE.BufferGeometry().setFromPoints(points), [points])
-  return (
-    <line geometry={geometry}>
-      <lineBasicMaterial color={color} transparent opacity={0.28 + intensity * 0.35} />
-    </line>
-  )
+  const line = useMemo(() => {
+    const geometry = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(...from),
+      new THREE.Vector3(...to),
+    ])
+    const material = new THREE.LineBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.28 + intensity * 0.35,
+    })
+    return new THREE.Line(geometry, material)
+  }, [from, to, color, intensity])
+
+  return <primitive object={line} />
 }
 
 function EmotionRegions({ color, brainAreas, intensity = 0.5 }: Brain3DProps) {
