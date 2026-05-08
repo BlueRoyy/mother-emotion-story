@@ -8,19 +8,19 @@ export function BrainModel() {
   const { scene } = useGLTF('/models/brain.glb')
 
   const cloned = useMemo(() => {
-    const copy = scene.clone()
+    const copy = scene.clone(true)
 
     copy.traverse((child) => {
       if (!(child instanceof THREE.Mesh)) return
 
-      child.castShadow = true
-      child.receiveShadow = true
+      child.castShadow = false
+      child.receiveShadow = false
 
-      const materials = Array.isArray(child.material)
+      const originalMaterials = Array.isArray(child.material)
         ? child.material
         : [child.material]
 
-      child.material = materials.map((material) => {
+      const clonedMaterials = originalMaterials.map((material) => {
         const clonedMaterial = material.clone()
 
         if (clonedMaterial instanceof THREE.MeshStandardMaterial) {
@@ -32,7 +32,22 @@ export function BrainModel() {
 
         return clonedMaterial
       })
+
+      child.material = Array.isArray(child.material) ? clonedMaterials : clonedMaterials[0]
     })
+
+    const box = new THREE.Box3().setFromObject(copy)
+    const size = new THREE.Vector3()
+    const center = new THREE.Vector3()
+    box.getSize(size)
+    box.getCenter(center)
+
+    const maxAxis = Math.max(size.x, size.y, size.z) || 1
+    const scale = 2.45 / maxAxis
+
+    copy.position.sub(center)
+    copy.scale.setScalar(scale)
+    copy.position.y += 0.05
 
     return copy
   }, [scene])
@@ -43,5 +58,5 @@ export function BrainModel() {
     ref.current.position.y = Math.sin(state.clock.elapsedTime * 0.8) * 0.05
   })
 
-  return <primitive ref={ref} object={cloned} scale={2.1} position={[0, -0.1, 0]} />
+  return <primitive ref={ref} object={cloned} />
 }
