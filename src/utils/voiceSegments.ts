@@ -54,7 +54,7 @@ export function getVoiceSegments(title: string, fallbackText: string): VoiceSegm
       { role: 'maya', text: 'Everything is okay.' },
       { role: 'narrator', text: 'Maya said, trying to sound normal. But Mom heard Jonah crying in the background.' },
       { role: 'mother', text: 'Maya, what happened?' },
-      { role: 'narrator', text: 'Mom said slowly. Maya swallowed and said Jonah only bumped his toy.' },
+      { role: 'narrator', text: 'Mom said slowly. Maya swallowed and said Jonah only bumped his toe.' },
     ],
     'Mother Finds Out': [
       { role: 'narrator', text: 'Just then, Mrs Clarke from next door called Mom too.' },
