@@ -5,6 +5,16 @@ exports.handler = async function(event) {
 
   try {
     const { text, voiceId } = JSON.parse(event.body || '{}')
+    const apiKey = process.env.ELEVENLABS_API_KEY
+
+    if (!apiKey) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          error: 'ELEVENLABS_API_KEY is not available to the Netlify function. Check the Netlify environment variable name and redeploy.',
+        }),
+      }
+    }
 
     if (!text || !voiceId) {
       return {
@@ -16,7 +26,7 @@ exports.handler = async function(event) {
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`, {
       method: 'POST',
       headers: {
-        'xi-api-key': process.env.ELEVENLABS_API_KEY,
+        'xi-api-key': apiKey,
         'Content-Type': 'application/json',
         Accept: 'audio/mpeg',
       },
@@ -36,7 +46,12 @@ exports.handler = async function(event) {
       const errorText = await response.text()
       return {
         statusCode: response.status,
-        body: JSON.stringify({ error: errorText }),
+        body: JSON.stringify({
+          error: 'ElevenLabs rejected the TTS request.',
+          status: response.status,
+          details: errorText,
+          hint: response.status === 401 ? 'Check that the API key is correct, has Voice Generation access, and that the site was redeployed after adding the variable.' : undefined,
+        }),
       }
     }
 
