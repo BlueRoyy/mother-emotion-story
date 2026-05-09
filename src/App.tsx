@@ -11,131 +11,45 @@ import { getVoiceSegments, pickVoice, voiceProfiles, type VoiceRole } from './ut
 import './index.css'
 
 export default function App() {
-  const [sceneIndex, setSceneIndex] = useState(0)
-  const [activeWordIndex, setActiveWordIndex] = useState(-1)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [isPaused, setIsPaused] = useState(false)
-  const [showLearning, setShowLearning] = useState(true)
-  const [activeSpeaker, setActiveSpeaker] = useState('Narrator')
-  const [largeText, setLargeText] = useState(false)
-  const [dyslexiaMode, setDyslexiaMode] = useState(false)
-  const [highContrast, setHighContrast] = useState(false)
-  const [slowNarration, setSlowNarration] = useState(false)
-  const [voiceStatus, setVoiceStatus] = useState('ElevenLabs ready')
-  const shouldContinueRef = useRef(false)
-  const timerRef = useRef<number | undefined>(undefined)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
-  const audioContextRef = useRef<AudioContext | null>(null)
-  const audioCacheRef = useRef<Record<string, string>>({})
-  const scene = useMemo(() => storyScenes[sceneIndex], [sceneIndex])
-  const narratedText = useMemo(() => getVoiceSegments(scene.title, scene.text).map((segment) => segment.text).join(' '), [scene])
-  const music = useAdaptiveMusic(scene.emotion, isPlaying && !isPaused)
-  const intensity = getEmotionIntensity(scene.emotion, isPlaying && !isPaused)
-
-  const playClick = () => { const A = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext; const audio = new A(); const oscillator = audio.createOscillator(); const gain = audio.createGain(); oscillator.frequency.value = 620; oscillator.type = 'sine'; gain.gain.setValueAtTime(0.035, audio.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + 0.08); oscillator.connect(gain); gain.connect(audio.destination); oscillator.start(); oscillator.stop(audio.currentTime + 0.08) }
-  const clearTimer = () => { if (timerRef.current) window.clearInterval(timerRef.current); timerRef.current = undefined }
-  const stopAudio = () => { if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; audioRef.current = null } }
-  const getRoleGain = (role: VoiceRole) => role === 'maya' ? 1.35 : 1
-
-  useEffect(() => { window.speechSynthesis.getVoices(); return () => { window.speechSynthesis.cancel(); clearTimer(); stopAudio() } }, [])
-
-  const startKaraoke = (wordOffset: number, wordCount: number, durationMs?: number) => {
-    clearTimer()
-    setActiveWordIndex(wordOffset)
-    const interval = durationMs && wordCount > 0 ? Math.max(160, durationMs / wordCount) : slowNarration ? 500 : 390
-    timerRef.current = window.setInterval(() => setActiveWordIndex((current) => Math.min(current + 1, wordOffset + wordCount - 1)), interval)
-  }
-
-  const getElevenAudioUrl = async (role: VoiceRole, text: string) => {
-    const voiceId = getVoiceId(role)
-    const cacheKey = `${voiceId}:${text}`
-    if (audioCacheRef.current[cacheKey]) return audioCacheRef.current[cacheKey]
-    const response = await fetch('/.netlify/functions/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, voiceId }) })
-    if (!response.ok) throw new Error(`ElevenLabs TTS failed: ${response.status}`)
-    const blob = await response.blob()
-    const url = URL.createObjectURL(blob)
-    audioCacheRef.current[cacheKey] = url
-    return url
-  }
-
-  const attachVoiceGain = async (audio: HTMLAudioElement, role: VoiceRole) => {
-    if (getRoleGain(role) <= 1) return
-    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-    if (!audioContextRef.current) audioContextRef.current = new AudioCtx()
-    const context = audioContextRef.current
-    const source = context.createMediaElementSource(audio)
-    const gain = context.createGain()
-    gain.gain.value = getRoleGain(role)
-    source.connect(gain)
-    gain.connect(context.destination)
-    await context.resume()
-  }
-
-  const speakBrowserFallback = (role: VoiceRole, text: string, wordOffset: number, wordCount: number, onDone: () => void) => {
-    const profile = voiceProfiles[role]
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.rate = profile.rate * (slowNarration ? 0.82 : 1)
-    utterance.pitch = role === 'maya' ? profile.pitch + 0.05 : profile.pitch
-    utterance.volume = role === 'maya' ? 1 : 0.92
-    utterance.voice = pickVoice(role) || null
-    utterance.onstart = () => startKaraoke(wordOffset, wordCount)
-    utterance.onend = () => { clearTimer(); setActiveWordIndex(wordOffset + wordCount - 1); onDone() }
-    window.speechSynthesis.speak(utterance)
-  }
-
-  const speakSegment = async (sceneIdx: number, segmentIdx: number, wordOffset: number) => {
-    clearTimer(); stopAudio(); window.speechSynthesis.cancel()
-    const currentScene = storyScenes[sceneIdx]
-    const segments = getVoiceSegments(currentScene.title, currentScene.text)
-    const segment = segments[segmentIdx]
-    if (!segment) {
-      if (shouldContinueRef.current && sceneIdx < storyScenes.length - 1) window.setTimeout(() => speakSegment(sceneIdx + 1, 0, 0), 650)
-      else { shouldContinueRef.current = false; setIsPlaying(false); setIsPaused(false); setActiveSpeaker('Narrator'); setVoiceStatus('Complete') }
-      return
-    }
-
-    const segmentWords = segment.text.split(' ')
-    const speakerName = segment.role.charAt(0).toUpperCase() + segment.role.slice(1)
-    setIsPlaying(true); setIsPaused(false); setSceneIndex(sceneIdx); setActiveSpeaker(speakerName); setVoiceStatus(`Loading ${speakerName} voice…`)
-
-    const continueNext = () => {
-      if (!shouldContinueRef.current) { setIsPlaying(false); setIsPaused(false); return }
-      window.setTimeout(() => speakSegment(sceneIdx, segmentIdx + 1, wordOffset + segmentWords.length), 180)
-    }
-
-    try {
-      const url = await getElevenAudioUrl(segment.role, segment.text)
-      if (!shouldContinueRef.current) return
-      const audio = new Audio(url)
-      audioRef.current = audio
-      audio.playbackRate = slowNarration ? 0.86 : 1
-      await attachVoiceGain(audio, segment.role)
-      audio.onloadedmetadata = () => startKaraoke(wordOffset, segmentWords.length, audio.duration * 1000)
-      audio.onplay = () => { setVoiceStatus(`Playing ${speakerName}`); if (!Number.isFinite(audio.duration)) startKaraoke(wordOffset, segmentWords.length) }
-      audio.onended = () => { clearTimer(); setActiveWordIndex(wordOffset + segmentWords.length - 1); continueNext() }
-      audio.onerror = () => { setVoiceStatus('Voice fallback active'); speakBrowserFallback(segment.role, segment.text, wordOffset, segmentWords.length, continueNext) }
-      await audio.play()
-    } catch {
-      setVoiceStatus('Voice fallback active')
-      speakBrowserFallback(segment.role, segment.text, wordOffset, segmentWords.length, continueNext)
-    }
-  }
-
-  const togglePlayPause = () => {
-    playClick()
-    if (isPlaying && !isPaused) { audioRef.current?.pause(); window.speechSynthesis.pause(); clearTimer(); setIsPaused(true); setVoiceStatus('Paused'); return }
-    if (isPlaying && isPaused) { audioRef.current?.play(); window.speechSynthesis.resume(); setIsPaused(false); const words = narratedText.split(' '); timerRef.current = window.setInterval(() => setActiveWordIndex((current) => Math.min(current + 1, words.length - 1)), slowNarration ? 500 : 390); return }
-    shouldContinueRef.current = true; speakSegment(sceneIndex, 0, 0)
-  }
-
-  const stopNarration = () => { playClick(); shouldContinueRef.current = false; stopAudio(); window.speechSynthesis.cancel(); clearTimer(); setIsPlaying(false); setIsPaused(false); setActiveWordIndex(-1); setActiveSpeaker('Narrator'); setVoiceStatus('Stopped') }
-  const replayScene = () => { stopNarration(); shouldContinueRef.current = true; window.setTimeout(() => speakSegment(sceneIndex, 0, 0), 80) }
-  const goToScene = (index: number) => { playClick(); stopNarration(); setSceneIndex(index) }
-  const shellClass = ['app-shell', largeText ? 'large-text' : '', dyslexiaMode ? 'dyslexia-mode' : '', highContrast ? 'high-contrast' : ''].join(' ')
-
-  return <div className={shellClass}>
-    <header className="topbar"><div><h1>The Mother’s Emotional Story</h1><p className="subtitle">A journey through love, stress, honesty, forgiveness, and connection.</p></div><div className="top-actions"><button className="top-action" onClick={() => music.toggleMusic()}>{music.enabled ? '🔊 Sound On' : '🔇 Sound Off'}</button><button className="top-action" onClick={() => setShowLearning((value) => !value)}>ⓘ About This Story</button></div></header>
-    <main className="experience-grid"><section className="story-dashboard"><aside className="scene-rail" aria-label="Scene navigation"><div className="rail-title">Scenes</div>{storyScenes.map((item, index) => <button key={item.title} className={index === sceneIndex ? 'scene-nav active-scene' : 'scene-nav'} onClick={() => goToScene(index)}><span>{index + 1}</span><strong>{item.title}</strong></button>)}</aside><section className="stage-area"><div className="scene-art cinematic-stage" style={{ background: scene.gradient }}><SceneAtmosphere emotion={scene.emotion} /><div className="art-icon">{scene.icon}</div><div className="story-caption"><div className="speaker-name">{activeSpeaker}</div><KaraokeText text={narratedText} activeWordIndex={activeWordIndex} /></div></div><div className="media-dock"><div className="controls primary-controls"><button className="control-button music-on" aria-label={isPlaying && !isPaused ? 'Pause narration' : 'Play narration'} onClick={togglePlayPause}>{isPlaying && !isPaused ? '⏸' : '▶'}</button><button className="control-button secondary" aria-label="Previous scene" onClick={() => goToScene(sceneIndex === 0 ? storyScenes.length - 1 : sceneIndex - 1)}>⏮</button><button className="control-button secondary" aria-label="Next scene" onClick={() => goToScene(sceneIndex + 1 >= storyScenes.length ? 0 : sceneIndex + 1)}>⏭</button><button className="control-button secondary" aria-label="Stop narration" onClick={stopNarration}>⏹</button></div><div className={isPlaying && !isPaused ? 'waveform active' : 'waveform'}>{Array.from({ length: 42 }).map((_, index) => <span key={index} />)}</div><button className="replay-button" onClick={replayScene}>↻ Replay Scene</button><button className="next-button" onClick={() => goToScene(sceneIndex + 1 >= storyScenes.length ? 0 : sceneIndex + 1)}>Next Scene →</button></div><div className="stage-footer"><div className="accessibility-bar" aria-label="Read along accessibility controls"><button className={largeText ? 'mini-toggle active-mini' : 'mini-toggle'} onClick={() => setLargeText((v) => !v)}>A+</button><button className={dyslexiaMode ? 'mini-toggle active-mini' : 'mini-toggle'} onClick={() => setDyslexiaMode((v) => !v)}>Dys</button><button className={highContrast ? 'mini-toggle active-mini' : 'mini-toggle'} onClick={() => setHighContrast((v) => !v)}>HC</button><button className={slowNarration ? 'mini-toggle active-mini' : 'mini-toggle'} onClick={() => setSlowNarration((v) => !v)}>Slow</button></div><div className="speaking-line">Speaking: <strong>{activeSpeaker}</strong><span className="voice-status"> · {voiceStatus}</span></div><label className="autoplay-switch"><span>Music</span><input type="range" min="0" max="0.5" step="0.01" value={music.volume} onChange={(event) => music.setVolume(Number(event.target.value))} /></label></div></section></section><BrainPanel emotion={scene.emotion} color={scene.color} brainAreas={scene.brainAreas} sideEffects={scene.sideEffects} intensity={intensity} /></main>
-    {showLearning && <LearningPanel emotion={scene.emotion} brainAreas={scene.brainAreas} sceneTitle={scene.title} />}
-  </div>
+const [sceneIndex, setSceneIndex] = useState(0)
+const [activeWordIndex, setActiveWordIndex] = useState(-1)
+const [isPlaying, setIsPlaying] = useState(false)
+const [isPaused, setIsPaused] = useState(false)
+const [showLearning, setShowLearning] = useState(true)
+const [activeSpeaker, setActiveSpeaker] = useState('Narrator')
+const [largeText, setLargeText] = useState(false)
+const [dyslexiaMode, setDyslexiaMode] = useState(false)
+const [highContrast, setHighContrast] = useState(false)
+const [slowNarration, setSlowNarration] = useState(false)
+const [voiceStatus, setVoiceStatus] = useState('ElevenLabs ready')
+const shouldContinueRef = useRef(false)
+const timerRef = useRef<number | undefined>(undefined)
+const audioRef = useRef<HTMLAudioElement | null>(null)
+const audioContextRef = useRef<AudioContext | null>(null)
+const audioCacheRef = useRef<Record<string, string>>({})
+const scene = useMemo(() => storyScenes[sceneIndex], [sceneIndex])
+const narratedText = useMemo(() => getVoiceSegments(scene.title, scene.text).map((segment) => segment.text).join(' '), [scene])
+const music = useAdaptiveMusic(scene.emotion, isPlaying && !isPaused)
+const intensity = getEmotionIntensity(scene.emotion, isPlaying && !isPaused)
+const playClick = () => { const A = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext; const audio = new A(); const oscillator = audio.createOscillator(); const gain = audio.createGain(); oscillator.frequency.value = 620; oscillator.type = 'sine'; gain.gain.setValueAtTime(0.035, audio.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + 0.08); oscillator.connect(gain); gain.connect(audio.destination); oscillator.start(); oscillator.stop(audio.currentTime + 0.08) }
+const clearTimer = () => { if (timerRef.current) window.clearInterval(timerRef.current); timerRef.current = undefined }
+const stopAudio = () => { if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; audioRef.current = null } }
+const getRoleGain = (role: VoiceRole) => role === 'maya' ? 1.35 : 1
+useEffect(() => { window.speechSynthesis.getVoices(); return () => { window.speechSynthesis.cancel(); clearTimer(); stopAudio() } }, [])
+const startKaraoke = (wordOffset: number, wordCount: number, durationMs?: number) => { clearTimer(); setActiveWordIndex(wordOffset); const interval = durationMs && wordCount > 0 ? Math.max(160, durationMs / wordCount) : slowNarration ? 500 : 390; timerRef.current = window.setInterval(() => setActiveWordIndex((current) => Math.min(current + 1, wordOffset + wordCount - 1)), interval) }
+const getElevenAudioUrl = async (role: VoiceRole, text: string) => { const voiceId = getVoiceId(role); const cacheKey = `${voiceId}:${text}`; if (audioCacheRef.current[cacheKey]) return audioCacheRef.current[cacheKey]; const response = await fetch('/.netlify/functions/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, voiceId }) }); if (!response.ok) throw new Error(`ElevenLabs TTS failed: ${response.status}`); const blob = await response.blob(); const url = URL.createObjectURL(blob); audioCacheRef.current[cacheKey] = url; return url }
+const attachVoiceGain = async (audio: HTMLAudioElement, role: VoiceRole) => { if (getRoleGain(role) <= 1) return; const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext; if (!audioContextRef.current) audioContextRef.current = new AudioCtx(); const context = audioContextRef.current; const source = context.createMediaElementSource(audio); const gain = context.createGain(); gain.gain.value = getRoleGain(role); source.connect(gain); gain.connect(context.destination); await context.resume() }
+const speakBrowserFallback = (role: VoiceRole, text: string, wordOffset: number, wordCount: number, onDone: () => void) => { const profile = voiceProfiles[role]; const utterance = new SpeechSynthesisUtterance(text); utterance.rate = profile.rate * (slowNarration ? 0.82 : 1); utterance.pitch = role === 'maya' ? profile.pitch + 0.05 : profile.pitch; utterance.volume = role === 'maya' ? 1 : 0.92; utterance.voice = pickVoice(role) || null; utterance.onstart = () => startKaraoke(wordOffset, wordCount); utterance.onend = () => { clearTimer(); setActiveWordIndex(wordOffset + wordCount - 1); onDone() }; window.speechSynthesis.speak(utterance) }
+const speakSegment = async (sceneIdx: number, segmentIdx: number, wordOffset: number) => { clearTimer(); stopAudio(); window.speechSynthesis.cancel(); const currentScene = storyScenes[sceneIdx]; const segments = getVoiceSegments(currentScene.title, currentScene.text); const segment = segments[segmentIdx]; if (!segment) { if (shouldContinueRef.current && sceneIdx < storyScenes.length - 1) window.setTimeout(() => speakSegment(sceneIdx + 1, 0, 0), 650); else { shouldContinueRef.current = false; setIsPlaying(false); setIsPaused(false); setActiveSpeaker('Narrator'); setVoiceStatus('Complete') } return }
+const segmentWords = segment.text.split(' ')
+const speakerName = segment.role.charAt(0).toUpperCase() + segment.role.slice(1)
+setIsPlaying(true); setIsPaused(false); setSceneIndex(sceneIdx); setActiveSpeaker(speakerName); setVoiceStatus(`Loading ${speakerName} voice…`)
+const continueNext = () => { if (!shouldContinueRef.current) { setIsPlaying(false); setIsPaused(false); return } window.setTimeout(() => speakSegment(sceneIdx, segmentIdx + 1, wordOffset + segmentWords.length), 180) }
+try { const url = await getElevenAudioUrl(segment.role, segment.text); if (!shouldContinueRef.current) return; const audio = new Audio(url); audioRef.current = audio; audio.playbackRate = slowNarration ? 0.86 : 1; await attachVoiceGain(audio, segment.role); audio.onloadedmetadata = () => startKaraoke(wordOffset, segmentWords.length, audio.duration * 1000); audio.onplay = () => { setVoiceStatus(`Playing ${speakerName}`); if (!Number.isFinite(audio.duration)) startKaraoke(wordOffset, segmentWords.length) }; audio.onended = () => { clearTimer(); setActiveWordIndex(wordOffset + segmentWords.length - 1); continueNext() }; audio.onerror = () => { setVoiceStatus('Voice fallback active'); speakBrowserFallback(segment.role, segment.text, wordOffset, segmentWords.length, continueNext) }; await audio.play() } catch { setVoiceStatus('Voice fallback active'); speakBrowserFallback(segment.role, segment.text, wordOffset, segmentWords.length, continueNext) } }
+const togglePlayPause = () => { playClick(); if (isPlaying && !isPaused) { audioRef.current?.pause(); window.speechSynthesis.pause(); clearTimer(); setIsPaused(true); setVoiceStatus('Paused'); return } if (isPlaying && isPaused) { audioRef.current?.play(); window.speechSynthesis.resume(); setIsPaused(false); const words = narratedText.split(' '); timerRef.current = window.setInterval(() => setActiveWordIndex((current) => Math.min(current + 1, words.length - 1)), slowNarration ? 500 : 390); return } shouldContinueRef.current = true; speakSegment(sceneIndex, 0, 0) }
+const stopNarration = () => { playClick(); shouldContinueRef.current = false; stopAudio(); window.speechSynthesis.cancel(); clearTimer(); setIsPlaying(false); setIsPaused(false); setActiveWordIndex(-1); setActiveSpeaker('Narrator'); setVoiceStatus('Stopped') }
+const replayScene = () => { stopNarration(); shouldContinueRef.current = true; window.setTimeout(() => speakSegment(sceneIndex, 0, 0), 80) }
+const goToScene = (index: number) => { playClick(); stopNarration(); setSceneIndex(index) }
+const shellClass = ['app-shell', largeText ? 'large-text' : '', dyslexiaMode ? 'dyslexia-mode' : '', highContrast ? 'high-contrast' : ''].join(' ')
+return <div className={shellClass}><header className="topbar"><div><h1>The Mother’s Emotional Story</h1><p className="subtitle">A journey through love, stress, honesty, forgiveness, and connection.</p></div><div className="top-actions"><button className="top-action" onClick={() => music.toggleMusic()}>{music.enabled ? '🔊 Sound On' : '🔇 Sound Off'}</button><button className="top-action" onClick={() => setShowLearning((value) => !value)}>ⓘ About This Story</button></div></header><main className="experience-grid"><section className="story-dashboard"><aside className="scene-rail" aria-label="Scene navigation"><div className="rail-title">Scenes</div>{storyScenes.map((item, index) => <button key={item.title} className={index === sceneIndex ? 'scene-nav active-scene' : 'scene-nav'} onClick={() => goToScene(index)}><span>{index + 1}</span><strong>{item.title}</strong></button>)}</aside><section className="stage-area"><div className="scene-art cinematic-stage" style={{ background: scene.gradient }}><div className="scene-image-wrapper"><img src={scene.image} alt={scene.title} className="scene-image" /></div><SceneAtmosphere emotion={scene.emotion} /><div className="story-caption"><div className="speaker-name">{activeSpeaker}</div><KaraokeText text={narratedText} activeWordIndex={activeWordIndex} /></div></div><div className="media-dock"><div className="controls primary-controls"><button className="control-button music-on" aria-label={isPlaying && !isPaused ? 'Pause narration' : 'Play narration'} onClick={togglePlayPause}>{isPlaying && !isPaused ? '⏸' : '▶'}</button><button className="control-button secondary" aria-label="Previous scene" onClick={() => goToScene(sceneIndex === 0 ? storyScenes.length - 1 : sceneIndex - 1)}>⏮</button><button className="control-button secondary" aria-label="Next scene" onClick={() => goToScene(sceneIndex + 1 >= storyScenes.length ? 0 : sceneIndex + 1)}>⏭</button><button className="control-button secondary" aria-label="Stop narration" onClick={stopNarration}>⏹</button></div><div className={isPlaying && !isPaused ? 'waveform active' : 'waveform'}>{Array.from({ length: 42 }).map((_, index) => <span key={index} />)}</div><button className="replay-button" onClick={replayScene}>↻ Replay Scene</button><button className="next-button" onClick={() => goToScene(sceneIndex + 1 >= storyScenes.length ? 0 : sceneIndex + 1)}>Next Scene →</button></div><div className="stage-footer"><div className="accessibility-bar" aria-label="Read along accessibility controls"><button className={largeText ? 'mini-toggle active-mini' : 'mini-toggle'} onClick={() => setLargeText((v) => !v)}>A+</button><button className={dyslexiaMode ? 'mini-toggle active-mini' : 'mini-toggle'} onClick={() => setDyslexiaMode((v) => !v)}>Dys</button><button className={highContrast ? 'mini-toggle active-mini' : 'mini-toggle'} onClick={() => setHighContrast((v) => !v)}>HC</button><button className={slowNarration ? 'mini-toggle active-mini' : 'mini-toggle'} onClick={() => setSlowNarration((v) => !v)}>Slow</button></div><div className="speaking-line">Speaking: <strong>{activeSpeaker}</strong><span className="voice-status"> · {voiceStatus}</span></div><label className="autoplay-switch"><span>Music</span><input type="range" min="0" max="0.5" step="0.01" value={music.volume} onChange={(event) => music.setVolume(Number(event.target.value))} /></label></div></section></section><BrainPanel emotion={scene.emotion} color={scene.color} brainAreas={scene.brainAreas} sideEffects={scene.sideEffects} intensity={intensity} /></main>{showLearning && <LearningPanel emotion={scene.emotion} brainAreas={scene.brainAreas} sceneTitle={scene.title} />}</div>
 }
